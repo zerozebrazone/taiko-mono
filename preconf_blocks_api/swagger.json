@@ -1,0 +1,321 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "title": "Taiko Preconfirmation Block Server API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "API Support",
+            "url": "https://community.taiko.xyz/",
+            "email": "info@taiko.xyz"
+        },
+        "license": {
+            "name": "MIT",
+            "url": "https://github.com/taikoxyz/taiko-mono/blob/main/LICENSE"
+        },
+        "version": "1.0"
+    },
+    "paths": {
+        "/healthz": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Get current server health status",
+                "operationId": "health-check",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/preconfBlocks": {
+            "post": {
+                "description": "Insert a preconfirmation block to the L2 execution engine, if the preconfirmation block creation\nbody in request are valid, it will insert the corresponding\npreconfirmation block to the backend L2 execution engine and return a success response.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Insert a preconfirmation block to the L2 execution engine.",
+                "parameters": [
+                    {
+                        "description": "preconfirmation block creation request body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/preconfblocks.BuildPreconfBlockRequestBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/preconfblocks.BuildPreconfBlockResponseBody"
+                        }
+                    }
+                }
+            }
+        },
+        "/status": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Get current preconfirmation block server status",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/preconfblocks.Status"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "preconfblocks.BuildPreconfBlockRequestBody": {
+            "type": "object",
+            "properties": {
+                "endOfSequencing": {
+                    "type": "boolean"
+                },
+                "executableData": {
+                    "description": "@param ExecutableData engine.ExecutableData the data necessary to execute an EL payload.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/preconfblocks.ExecutableData"
+                        }
+                    ]
+                },
+                "isForcedInclusion": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "preconfblocks.BuildPreconfBlockResponseBody": {
+            "type": "object",
+            "properties": {
+                "blockHeader": {
+                    "description": "@param blockHeader types.Header of the preconfirmation block",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/types.Header"
+                        }
+                    ]
+                }
+            }
+        },
+        "preconfblocks.ExecutableData": {
+            "type": "object",
+            "properties": {
+                "baseFeePerGas": {
+                    "type": "integer"
+                },
+                "blockNumber": {
+                    "type": "integer"
+                },
+                "extraData": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "feeRecipient": {
+                    "type": "string"
+                },
+                "gasLimit": {
+                    "type": "integer"
+                },
+                "parentHash": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "integer"
+                },
+                "transactions": {
+                    "description": "Transactions list with RLP encoded at first, then zlib compressed.",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "preconfblocks.Lookahead": {
+            "type": "object",
+            "properties": {
+                "currOperator": {
+                    "type": "string"
+                },
+                "currRanges": {
+                    "description": "slots allowed for CurrOperator (0..threshold-1)",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/preconfblocks.SlotRange"
+                    }
+                },
+                "lastUpdatedEpoch": {
+                    "type": "integer"
+                },
+                "nextOperator": {
+                    "type": "string"
+                },
+                "nextRanges": {
+                    "description": "slots allowed for NextOperator (threshold..slotsPerEpoch-1)",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/preconfblocks.SlotRange"
+                    }
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "preconfblocks.SlotRange": {
+            "type": "object",
+            "properties": {
+                "end": {
+                    "type": "integer"
+                },
+                "start": {
+                    "type": "integer"
+                }
+            }
+        },
+        "preconfblocks.Status": {
+            "type": "object",
+            "properties": {
+                "canShutdown": {
+                    "description": "CanShutdown is true when the server is safe to receive SIGTERM, i.e.,\nnot the active or imminent preconfer for the current L1 slot.",
+                    "type": "boolean"
+                },
+                "endOfSequencingBlockHash": {
+                    "description": "@param whether the current epoch has received an end of sequencing block marker",
+                    "type": "string"
+                },
+                "highestUnsafeL2PayloadBlockID": {
+                    "description": "@param highestUnsafeL2PayloadBlockID uint64 the highest preconfirmation block ID that the server\n@param has received from the P2P network, if its zero, it means the current server has not received\n@param any preconfirmation block from the P2P network yet.",
+                    "type": "integer"
+                },
+                "lookahead": {
+                    "description": "@param lookahead the current lookahead information.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/preconfblocks.Lookahead"
+                        }
+                    ]
+                },
+                "totalCached": {
+                    "description": "@param totalCached uint64 the total number of cached envelopes after the start of the server.",
+                    "type": "integer"
+                }
+            }
+        },
+        "types.Header": {
+            "type": "object",
+            "properties": {
+                "baseFeePerGas": {
+                    "description": "BaseFee was added by EIP-1559 and is ignored in legacy headers.",
+                    "type": "integer"
+                },
+                "blobGasUsed": {
+                    "description": "BlobGasUsed was added by EIP-4844 and is ignored in legacy headers.",
+                    "type": "integer"
+                },
+                "blockAccessListHash": {
+                    "description": "CHANGE(taiko): Preserve the EIP-7928 hash when reading L1 headers.\nBlockAccessListHash was added by EIP-7928 and is ignored in legacy headers.\nA nil value uses an empty-string placeholder when SlotNumber is present.",
+                    "type": "string"
+                },
+                "difficulty": {
+                    "type": "integer"
+                },
+                "excessBlobGas": {
+                    "description": "ExcessBlobGas was added by EIP-4844 and is ignored in legacy headers.",
+                    "type": "integer"
+                },
+                "extraData": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "gasLimit": {
+                    "type": "integer"
+                },
+                "gasUsed": {
+                    "type": "integer"
+                },
+                "logsBloom": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "miner": {
+                    "type": "string"
+                },
+                "mixHash": {
+                    "type": "string"
+                },
+                "nonce": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "number": {
+                    "type": "integer"
+                },
+                "parentBeaconBlockRoot": {
+                    "description": "ParentBeaconRoot was added by EIP-4788 and is ignored in legacy headers.",
+                    "type": "string"
+                },
+                "parentHash": {
+                    "type": "string"
+                },
+                "receiptsRoot": {
+                    "type": "string"
+                },
+                "requestsHash": {
+                    "description": "RequestsHash was added by EIP-7685 and is ignored in legacy headers.",
+                    "type": "string"
+                },
+                "sha3Uncles": {
+                    "type": "string"
+                },
+                "slotNumber": {
+                    "description": "SlotNumber was added by EIP-7843 and is ignored in legacy headers.",
+                    "type": "integer"
+                },
+                "stateRoot": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "integer"
+                },
+                "transactionsRoot": {
+                    "type": "string"
+                },
+                "withdrawalsRoot": {
+                    "description": "WithdrawalsHash was added by EIP-4895 and is ignored in legacy headers.",
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,228 @@
+definitions:
+  preconfblocks.BuildPreconfBlockRequestBody:
+    properties:
+      endOfSequencing:
+        type: boolean
+      executableData:
+        allOf:
+        - $ref: '#/definitions/preconfblocks.ExecutableData'
+        description: '@param ExecutableData engine.ExecutableData the data necessary
+          to execute an EL payload.'
+      isForcedInclusion:
+        type: boolean
+    type: object
+  preconfblocks.BuildPreconfBlockResponseBody:
+    properties:
+      blockHeader:
+        allOf:
+        - $ref: '#/definitions/types.Header'
+        description: '@param blockHeader types.Header of the preconfirmation block'
+    type: object
+  preconfblocks.ExecutableData:
+    properties:
+      baseFeePerGas:
+        type: integer
+      blockNumber:
+        type: integer
+      extraData:
+        items:
+          type: integer
+        type: array
+      feeRecipient:
+        type: string
+      gasLimit:
+        type: integer
+      parentHash:
+        type: string
+      timestamp:
+        type: integer
+      transactions:
+        description: Transactions list with RLP encoded at first, then zlib compressed.
+        items:
+          type: integer
+        type: array
+    type: object
+  preconfblocks.Lookahead:
+    properties:
+      currOperator:
+        type: string
+      currRanges:
+        description: slots allowed for CurrOperator (0..threshold-1)
+        items:
+          $ref: '#/definitions/preconfblocks.SlotRange'
+        type: array
+      lastUpdatedEpoch:
+        type: integer
+      nextOperator:
+        type: string
+      nextRanges:
+        description: slots allowed for NextOperator (threshold..slotsPerEpoch-1)
+        items:
+          $ref: '#/definitions/preconfblocks.SlotRange'
+        type: array
+      updatedAt:
+        type: string
+    type: object
+  preconfblocks.SlotRange:
+    properties:
+      end:
+        type: integer
+      start:
+        type: integer
+    type: object
+  preconfblocks.Status:
+    properties:
+      canShutdown:
+        description: |-
+          CanShutdown is true when the server is safe to receive SIGTERM, i.e.,
+          not the active or imminent preconfer for the current L1 slot.
+        type: boolean
+      endOfSequencingBlockHash:
+        description: '@param whether the current epoch has received an end of sequencing
+          block marker'
+        type: string
+      highestUnsafeL2PayloadBlockID:
+        description: |-
+          @param highestUnsafeL2PayloadBlockID uint64 the highest preconfirmation block ID that the server
+          @param has received from the P2P network, if its zero, it means the current server has not received
+          @param any preconfirmation block from the P2P network yet.
+        type: integer
+      lookahead:
+        allOf:
+        - $ref: '#/definitions/preconfblocks.Lookahead'
+        description: '@param lookahead the current lookahead information.'
+      totalCached:
+        description: '@param totalCached uint64 the total number of cached envelopes
+          after the start of the server.'
+        type: integer
+    type: object
+  types.Header:
+    properties:
+      baseFeePerGas:
+        description: BaseFee was added by EIP-1559 and is ignored in legacy headers.
+        type: integer
+      blobGasUsed:
+        description: BlobGasUsed was added by EIP-4844 and is ignored in legacy headers.
+        type: integer
+      blockAccessListHash:
+        description: |-
+          CHANGE(taiko): Preserve the EIP-7928 hash when reading L1 headers.
+          BlockAccessListHash was added by EIP-7928 and is ignored in legacy headers.
+          A nil value uses an empty-string placeholder when SlotNumber is present.
+        type: string
+      difficulty:
+        type: integer
+      excessBlobGas:
+        description: ExcessBlobGas was added by EIP-4844 and is ignored in legacy
+          headers.
+        type: integer
+      extraData:
+        items:
+          type: integer
+        type: array
+      gasLimit:
+        type: integer
+      gasUsed:
+        type: integer
+      logsBloom:
+        items:
+          type: integer
+        type: array
+      miner:
+        type: string
+      mixHash:
+        type: string
+      nonce:
+        items:
+          type: integer
+        type: array
+      number:
+        type: integer
+      parentBeaconBlockRoot:
+        description: ParentBeaconRoot was added by EIP-4788 and is ignored in legacy
+          headers.
+        type: string
+      parentHash:
+        type: string
+      receiptsRoot:
+        type: string
+      requestsHash:
+        description: RequestsHash was added by EIP-7685 and is ignored in legacy headers.
+        type: string
+      sha3Uncles:
+        type: string
+      slotNumber:
+        description: SlotNumber was added by EIP-7843 and is ignored in legacy headers.
+        type: integer
+      stateRoot:
+        type: string
+      timestamp:
+        type: integer
+      transactionsRoot:
+        type: string
+      withdrawalsRoot:
+        description: WithdrawalsHash was added by EIP-4895 and is ignored in legacy
+          headers.
+        type: string
+    type: object
+info:
+  contact:
+    email: info@taiko.xyz
+    name: API Support
+    url: https://community.taiko.xyz/
+  license:
+    name: MIT
+    url: https://github.com/taikoxyz/taiko-mono/blob/main/LICENSE
+  termsOfService: http://swagger.io/terms/
+  title: Taiko Preconfirmation Block Server API
+  version: "1.0"
+paths:
+  /healthz:
+    get:
+      consumes:
+      - application/json
+      operationId: health-check
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Get current server health status
+  /preconfBlocks:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Insert a preconfirmation block to the L2 execution engine, if the preconfirmation block creation
+        body in request are valid, it will insert the corresponding
+        preconfirmation block to the backend L2 execution engine and return a success response.
+      parameters:
+      - description: preconfirmation block creation request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/preconfblocks.BuildPreconfBlockRequestBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/preconfblocks.BuildPreconfBlockResponseBody'
+      summary: Insert a preconfirmation block to the L2 execution engine.
+  /status:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/preconfblocks.Status'
+      summary: Get current preconfirmation block server status
+swagger: "2.0"
